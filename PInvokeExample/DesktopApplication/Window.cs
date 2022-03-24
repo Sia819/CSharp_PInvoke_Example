@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using PInvokeExtension;
-using static PInvokeExtension.User32Ex.Icons;
+using static PInvokeExtension.User32;
 using static PInvoke.Gdi32;
 using static PInvoke.User32;
 using static PInvoke.User32.ClassStyles;
@@ -48,7 +48,7 @@ namespace DesktopApplication
             WndClass.cbClsExtra = 0;
             WndClass.cbWndExtra = 0;
             WndClass.hbrBackground = GetStockObject(StockObject.WHITE_BRUSH);
-            WndClass.hCursor = User32Ex.LoadCursor(IntPtr.Zero, Cursors.IDC_ARROW);
+            WndClass.hCursor = LoadCursor(IntPtr.Zero, Cursors.IDC_ARROW);
             WndClass.hIcon = LoadIcon(IntPtr.Zero, nameof(IDI_APPLICATION));
             WndClass.hInstance = hInstance;
             WndClass.lpfnWndProc = WndProc;

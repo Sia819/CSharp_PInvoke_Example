@@ -10,7 +10,5 @@ namespace PInvokeExample
         {
             Window program = new Window();
         }
-
-        
     }
 }
