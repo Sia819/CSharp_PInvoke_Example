@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PInvokeExtension", "PInvoke
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegisterHotKeyExample", "RegisterHotKeyExample\RegisterHotKeyExample.csproj", "{0B73D115-5B47-4CE5-A514-BB8FC5E938D6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageGenerator", "MessageGenerator\MessageGenerator.csproj", "{61DF7D53-C193-4761-884D-320E92B0457A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HotkeyMessageReceiver", "HotkeyMessageReceiver\HotkeyMessageReceiver.csproj", "{61DF7D53-C193-4761-884D-320E92B0457A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
