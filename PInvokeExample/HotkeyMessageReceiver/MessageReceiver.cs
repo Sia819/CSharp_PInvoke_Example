@@ -10,13 +10,14 @@ using static PInvoke.User32.Cursors;
 using static PInvoke.User32.WindowStyles;
 using static PInvoke.User32.WindowMessage;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace HotkeyMessageReceiver
 {
     /// <summary>
     /// C++ Invoked Windows Desktop Application
     /// </summary>
-    public unsafe class MessageReceiver
+    public class MessageReceiver
     {
         #region Public Properties
         private string name;
@@ -35,6 +36,22 @@ namespace HotkeyMessageReceiver
         public IntPtr Handle { get; private set; }
         #endregion
 
+        #region Private Constant
+        private const int MACRO_REG = 11111;
+        private const int MACRO_UNREG = 22222;
+        #endregion
+
+        #region Public Delegate
+        public unsafe delegate void HotkeyDelegate();
+        #endregion
+
+        #region Private Member
+        private IntPtr g_hInst;
+        private MSG msg;
+        private readonly Dictionary<Hotkey, HotkeyData> registerdKeys = new();
+        private int hotkeyCount;
+        #endregion
+
         #region Private Structor
         private struct Hotkey
         {
@@ -43,16 +60,13 @@ namespace HotkeyMessageReceiver
         }
         #endregion
 
-        #region Private Constant
-        private const int MACRO_REG = 11111;
-        private const int MACRO_UNREG = 22222;
-        #endregion
+        #region Private Class
+        private class HotkeyData
+        {
+            public int HotkeyID { get; set; }
 
-        #region Private Member
-        private MSG msg;
-        private IntPtr g_hInst;
-        private Dictionary<Hotkey, int> registerdKeys = new Dictionary<Hotkey, int>();
-        private int hotkeyCount;
+            public HotkeyDelegate HotkeyDelegate { get; set; }
+        }
         #endregion
 
         public unsafe MessageReceiver()  // primary cpp param is "WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)"
@@ -63,25 +77,11 @@ namespace HotkeyMessageReceiver
 
             // Initialization
             msg = new MSG();
-            WNDCLASS WndClass = new WNDCLASS();
+            WNDCLASS WndClass = new();
             WndClass.hInstance = hInstance;
             WndClass.lpfnWndProc = WndProc;
             WndClass.lpszClassName = Name.ToCharPointer();
-            RegisterClass(ref WndClass);
-
-            // If doesn't make CreateWindow, we can't get a Handle
-            Handle = CreateWindow(Name,
-                                Name,
-                                WS_OVERLAPPEDWINDOW,
-                                CW_USEDEFAULT,
-                                CW_USEDEFAULT,
-                                CW_USEDEFAULT,
-                                CW_USEDEFAULT,
-                                IntPtr.Zero,
-                                IntPtr.Zero,
-                                hInstance,
-                                IntPtr.Zero);
-            // ShowWindow(Handle, nCmdShow);
+            _ = RegisterClass(ref WndClass);
         }
 
         public MessageReceiver(string windowName) : this()
@@ -89,23 +89,43 @@ namespace HotkeyMessageReceiver
             Name = windowName;
         }
 
-        [Obsolete]
-        public void MessageLoop()
+        public void Run()
+        {
+            new Thread(new ThreadStart(() =>
+            {
+                // If doesn't make CreateWindow, we can't get a Handle
+                Handle = CreateWindow(Name,
+                                    Name,
+                                    WS_OVERLAPPEDWINDOW,
+                                    CW_USEDEFAULT,
+                                    CW_USEDEFAULT,
+                                    CW_USEDEFAULT,
+                                    CW_USEDEFAULT,
+                                    IntPtr.Zero,
+                                    IntPtr.Zero,
+                                    g_hInst,
+                                    IntPtr.Zero);
+                // ShowWindow(Handle, nCmdShow);
+
+                // Thread do
+                MessageLoop();
+
+            }))
+            {
+                // Thread Properties
+                IsBackground = true
+            }
+            .Start();
+        }
+
+        private unsafe void MessageLoop()
         {
             fixed (MSG* messagePointer = &msg)
             {
                 while (GetMessage(messagePointer, IntPtr.Zero, WM_NULL, WM_NULL) > 0)
                 {
-                    try
-                    {
-                        TranslateMessage(messagePointer);
-                        DispatchMessage(messagePointer);
-                    }
-                    catch (System.ExecutionEngineException c)
-                    {
-                        Console.WriteLine(c.Message);
-                    }
-                    
+                    TranslateMessage(messagePointer);
+                    //DispatchMessage(messagePointer);
 
                     switch ((int)msg.message)
                     {
@@ -113,18 +133,11 @@ namespace HotkeyMessageReceiver
                             {
                                 Keys key = (Keys)(((int)msg.lParam >> 16) & 0xFFFF);
                                 KeyModifiers modifier = (KeyModifiers)((int)msg.lParam & 0xFFFF);
+                                Hotkey hotkey = new() { keys = key, keyModifiers = modifier };
 
-                                if (KeyModifiers.None == modifier && Keys.A == key)
+                                if (registerdKeys.TryGetValue(hotkey, out HotkeyData value))
                                 {
-                                    RegisterHotKey(NULL, 1, NULL, Keys.A);
-                                }
-                                else if (KeyModifiers.Control == modifier && Keys.B == key)
-                                {
-                                    RegisterHotKey(NULL, 1, NULL, Keys.A);
-                                }
-                                else if (((int)KeyModifiers.Control | (int)KeyModifiers.Shift) == (int)modifier && Keys.C == key)
-                                {
-                                    RegisterHotKey(NULL, 1, NULL, Keys.A);
+                                    value.HotkeyDelegate.Invoke();
                                 }
                                 break;
                             }
@@ -133,13 +146,14 @@ namespace HotkeyMessageReceiver
                             {
                                 Keys key = (Keys)(((int)msg.lParam >> 16) & 0xFFFF);
                                 KeyModifiers modifier = (KeyModifiers)((int)msg.lParam & 0xFFFF);
+                                Hotkey hotkey = new() { keys = key, keyModifiers = modifier };
 
-                                Hotkey hotkey = new Hotkey { keys = key, keyModifiers = modifier };
-                                if (registerdKeys.TryGetValue(hotkey, out int value))   // Get registered hotkey of id from Dictionary
+                                if (registerdKeys.TryGetValue(hotkey, out HotkeyData value))   // Get registered hotkey of id from Dictionary
                                 {// Avoid duplicate registration
                                     break;
                                 }
-                                registerdKeys.Add(hotkey, hotkeyCount);
+                                HotkeyDelegate h = (HotkeyDelegate)Marshal.GetDelegateForFunctionPointer(msg.wParam, typeof(HotkeyDelegate));
+                                registerdKeys.Add(hotkey, new HotkeyData() { HotkeyID = hotkeyCount, HotkeyDelegate = h });
                                 RegisterHotKey(NULL, hotkeyCount, modifier, key);
 
                                 Console.WriteLine("HotKey Registerd! (numberof : {0}, modifier : {1}, key : {2})", hotkeyCount, modifier, key);
@@ -152,10 +166,10 @@ namespace HotkeyMessageReceiver
                                 Keys key = (Keys)(((int)msg.lParam >> 16) & 0xFFFF);
                                 KeyModifiers modifier = (KeyModifiers)((int)msg.lParam & 0xFFFF);
 
-                                Hotkey hotkey = new Hotkey { keys = key, keyModifiers = modifier };
-                                if (registerdKeys.TryGetValue(hotkey, out int value))  // Get registered hotkey of id from Dictionary
+                                Hotkey hotkey = new() { keys = key, keyModifiers = modifier };
+                                if (registerdKeys.TryGetValue(hotkey, out HotkeyData value))  // Get registered hotkey of id from Dictionary
                                 {// Avoid duplicate unregistration
-                                    UnregisterHotKey(NULL, value);
+                                    _ = UnregisterHotKey(NULL, value.HotkeyID);
                                     registerdKeys.Remove(hotkey); // Removed hotkeys can be register again
                                     Console.WriteLine("HotKey Unegisterd! (numberof : {0}, modifier : {1}, key : {2})", value, modifier, key);
                                 }
@@ -170,7 +184,7 @@ namespace HotkeyMessageReceiver
         }
 
 
-        public unsafe IntPtr WndProc(IntPtr hWnd, WindowMessage msg, void* wParam, void* lParam)
+        private unsafe IntPtr WndProc(IntPtr hWnd, WindowMessage msg, void* wParam, void* lParam)
         {
             switch (msg)
             {
@@ -186,14 +200,20 @@ namespace HotkeyMessageReceiver
             }
         }
 
-        public void AddHotkey(Keys key, KeyModifiers keyModifiers)
+        public void AddHotkey(Keys key, KeyModifiers keyModifiers, HotkeyDelegate hotkeyDelegate)
         {
-            PostMessage(this.Handle, (int)MACRO_REG, 1, MAKELPARAM((int)keyModifiers, (int)key));
+            _ = PostMessage(this.Handle,
+                            (int)MACRO_REG,
+                            Marshal.GetFunctionPointerForDelegate(hotkeyDelegate),
+                            (IntPtr)MAKELPARAM((int)keyModifiers, (int)key));
         }
 
         public void RemoveHotkey(Keys key, KeyModifiers keyModifiers)
         {
-            PostMessage(this.Handle, (int)MACRO_UNREG, 2, MAKELPARAM((int)keyModifiers, (int)key));
+            _ = PostMessage(this.Handle,
+                            (int)MACRO_UNREG,
+                            NULL,
+                            MAKELPARAM((int)keyModifiers, (int)key));
         }
     }
 }
