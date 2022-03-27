@@ -16,7 +16,7 @@ namespace HotkeyMessageReceiver
     /// <summary>
     /// C++ Invoked Windows Desktop Application
     /// </summary>
-    public unsafe class Window
+    public unsafe class MessageReceiver
     {
         #region Public Properties
         private string name;
@@ -55,10 +55,10 @@ namespace HotkeyMessageReceiver
         private int hotkeyCount;
         #endregion
 
-        public unsafe Window()  // primary cpp param is "WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)"
+        public unsafe MessageReceiver()  // primary cpp param is "WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)"
         {
             // Primary param init
-            IntPtr hInstance = Marshal.GetHINSTANCE(typeof(Window).Module);
+            IntPtr hInstance = Marshal.GetHINSTANCE(typeof(MessageReceiver).Module);
             g_hInst = hInstance;
 
             // Initialization
@@ -84,7 +84,7 @@ namespace HotkeyMessageReceiver
             // ShowWindow(Handle, nCmdShow);
         }
 
-        public Window(string windowName) : this()
+        public MessageReceiver(string windowName) : this()
         {
             Name = windowName;
         }

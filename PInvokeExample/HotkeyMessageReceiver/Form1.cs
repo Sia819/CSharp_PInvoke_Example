@@ -10,7 +10,7 @@ namespace HotkeyMessageReceiver
 {
     public partial class Form1 : Form
     {
-        Window win32;
+        MessageReceiver win32;
 
         public Form1()
         {
