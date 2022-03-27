@@ -11,10 +11,13 @@ namespace PInvokeExtension
     {
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, KeyModifiers fsModifiers, Keys vk);
+
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool RegisterHotKey(int hWnd, int id, KeyModifiers fsModifiers, Keys vk);
+
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool RegisterHotKey(int hWnd, int id, int fsModifiers, Keys vk);
+
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool RegisterHotKey(int hWnd, int id, int fsModifiers, int vk);
     }

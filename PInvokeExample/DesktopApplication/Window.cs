@@ -41,8 +41,7 @@ namespace DesktopApplication
 
             // Initialization
             IntPtr hWnd;
-            MSG _message = new MSG(); // point referenced of MSG structor
-            IntPtr Message = (IntPtr)(&_message);
+            MSG msg = new MSG(); // point referenced of MSG structor
             WNDCLASS WndClass = new WNDCLASS();
             
             WndClass.cbClsExtra = 0;
@@ -70,10 +69,10 @@ namespace DesktopApplication
                                 IntPtr.Zero);
             ShowWindow(hWnd, nCmdShow);
 
-            while (GetMessage(Message, IntPtr.Zero, WM_NULL, WM_NULL) > 0)
+            while (GetMessage(&msg, IntPtr.Zero, WM_NULL, WM_NULL) > 0)
             {
-                TranslateMessage(Message);
-                DispatchMessage(Message);
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
             }
         }
 
